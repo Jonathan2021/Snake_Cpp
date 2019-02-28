@@ -36,14 +36,12 @@
  * Description:  constructor
  *--------------------------------------------------------------------------------------
  */
-Something::Something (const Type type, const std::string color, const bool deadly, std::pair<unsigned, unsigned> coords, action func)
+Something::Something (const Type type, const std::string color, const bool deadly, std::pair<unsigned, unsigned> coords)
     :type_(type)
     ,color_(color)
     ,deadly_(deadly)
     ,coords_(coords)
-    ,action_(func)
 {
-
 }  /* -----  end of method Something::Something  (constructor)  ----- */
 
 Type& Something::type(void)
@@ -72,16 +70,6 @@ void Something::print(void)
         ", color " << color_ << '\n';
 }
 
-void Something::on_trigger(Arena& arena)
-{
-    action_(arena);
-}
-
-action& Something::my_action(void)
-{
-    return action_;
-}
-
 /*
  *--------------------------------------------------------------------------------------
  *       Class:  Snake
@@ -90,12 +78,12 @@ action& Something::my_action(void)
  *--------------------------------------------------------------------------------------
  */
 Snake::Snake (unsigned y, unsigned x)
-    :Something(snake, "blue", true, std::make_pair(y, x), nullptr)
+    :Something(snake, "blue", true, std::make_pair(y, x))
     ,name_("Joe")
 { snake_count++; }  /* -----  end of method Snake::Snake  (constructor)  ----- */
 
 Snake::Snake (std::pair<unsigned, unsigned> coords)
-    :Something(snake, "blue", true, coords, nullptr)
+    :Something(snake, "blue", true, coords)
     ,name_("Joe")
 { snake_count++; }
 
@@ -130,7 +118,7 @@ int Snake::snake_count = 0;
  *--------------------------------------------------------------------------------------
  */
 Food::Food (const unsigned i, const std::string color, const bool deadly, const std::pair<unsigned, unsigned> coords)
-    :Something(food, color, deadly, coords, nullptr)
+    :Something(food, color, deadly, coords)
     ,increase_(i)
 {
     food_count++;
@@ -151,12 +139,6 @@ void Food::print(void)
     std::cout << "Food of type : " << type() << ", color : " << color() << \
         ", I increase by : " << increase_ << ", am I deadly ? " << \
         std::boolalpha << deadly() << '\n';
-}
-
-void Food::on_trigger(Arena& arena)
-{
-    (void)arena;
-    std::cout << "MIOM MIOM MIOM delicious\n";
 }
 
 int Food::food_count = 0;
@@ -338,6 +320,7 @@ Arena::Arena (const unsigned height, const unsigned  width)
     ,wall_(std::vector<std::shared_ptr<Wall>>{})
     ,map_(nullptr)
     ,difficulty_(0)
+    ,growth_(0)
 {
 }  /* -----  end of method Arena::Arena  (constructor)  ----- */
 
@@ -379,6 +362,16 @@ std::weak_ptr<Something>**& Arena::map(void)
 int& Arena::difficulty()
 {
     return this->difficulty_;
+}
+
+unsigned& Arena::lives(void)
+{
+    return this->lives_;
+}
+
+int& Arena::growth(void)
+{
+    return this->growth_;
 }
 
 bool Arena::in_bound(const unsigned y, const unsigned x) const
@@ -428,8 +421,11 @@ void Arena::add_something(std::shared_ptr<Something> something)
 
 void Arena::init(void)
 {
-    for (unsigned i = 1; i < width_ ; ++i)
-        add_something(std::make_shared<Snake>(height_ / 2 , i));
+    if (snake_.empty())
+    {
+        add_something(std::make_shared<Snake>(height_ / 2 , width_ / 2));
+        growth_ = 2;
+    }
     unsigned y_temp;
     unsigned x_temp;
     for (auto i = 0; i < 4;)
@@ -461,12 +457,12 @@ void Arena::update(void)
  *--------------------------------------------------------------------------------------
  */
 Wall::Wall (const unsigned y, const unsigned x)
-    :Something(wall, "white", true, std::make_pair(y, x), nullptr)
+    :Something(wall, "white", true, std::make_pair(y, x))
 {
 }  /* -----  end of method Wall::Wall  (constructor)  ----- */
 
 Wall::Wall (std::pair<unsigned, unsigned> coords)
-    :Something(wall, "white", true, coords, nullptr)
+    :Something(wall, "white", true, coords)
 {
 }  /* -----  end of method Wall::Wall  (constructor)  ----- */
 
@@ -476,3 +472,43 @@ void Wall::print(void)
 }
 
 int Wall::wall_count = 0;
+
+void Snake::trigger(Arena& arena)
+{
+    auto& snake = arena.snake();
+    for(auto i = snake.begin(); i != snake.end(); ++i)
+    {
+        if (&**i == this)
+        {
+            for (auto it = i + 1; it != snake.end(); ++it)
+            {
+                arena.add_something(std::make_shared<Wall>((*it)->coords()));
+            }
+            snake.erase(i, snake.end());
+            break;
+        }
+    }
+    arena.lives()--;
+}
+
+void Food::trigger(Arena& arena)
+{
+    auto& food = arena.food();
+    for (auto it = food.begin(); it != food.end(); ++it)
+    {
+        if (&**it == this)
+        {
+            arena.growth() += (*it)->increase();
+            break;
+        }
+    }
+}
+
+void Wall::trigger(Arena& arena)
+{
+    //auto coords = arena.snake().front()->coords();
+    arena.snake().erase(arena.snake().begin());
+    arena.lives()--;
+}
+
+
