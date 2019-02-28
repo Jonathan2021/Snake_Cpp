@@ -18,9 +18,69 @@
 
 
 #include	<iostream>
+#include	<assert.h>
 #include	<climits>
+#include	<stdexcept>
+#include	<curses.h>
+#include	<ctype.h>
+#include	<stdlib.h>
+#include	<memory>
 #include	"snake.hh"
 
+
+
+/*
+ *--------------------------------------------------------------------------------------
+ *       Class:  Something
+ *      Method:  Something
+ * Description:  constructor
+ *--------------------------------------------------------------------------------------
+ */
+Something::Something (const Type type, const std::string color, const bool deadly, std::pair<unsigned, unsigned> coords, action func)
+    :type_(type)
+    ,color_(color)
+    ,deadly_(deadly)
+    ,coords_(coords)
+    ,action_(func)
+{
+
+}  /* -----  end of method Something::Something  (constructor)  ----- */
+
+Type& Something::type(void)
+{
+  return type_; 
+}
+
+std::string& Something::color(void)
+{
+    return color_;
+}
+
+std::pair<unsigned, unsigned>& Something::coords(void)
+{
+    return coords_;
+}
+
+bool& Something::deadly(void)
+{
+    return deadly_;
+}
+
+void Something::print(void)
+{
+    std::cout << "Something, deadly? " << std::boolalpha << deadly_ << \
+        ", color " << color_ << '\n';
+}
+
+void Something::on_trigger(Arena& arena)
+{
+    action_(arena);
+}
+
+action& Something::my_action(void)
+{
+    return action_;
+}
 
 /*
  *--------------------------------------------------------------------------------------
@@ -29,58 +89,23 @@
  * Description:  constructor
  *--------------------------------------------------------------------------------------
  */
-Snake::Snake ()
-    :color_("green")
+Snake::Snake (unsigned y, unsigned x)
+    :Something(snake, "blue", true, std::make_pair(y, x), nullptr)
     ,name_("Joe")
-    ,size_(3)
-    ,direction_(0)
-    ,lives_(3)
-    ,body_(std::vector<std::pair<unsigned, unsigned>>{})
-{}  /* -----  end of method Snake::Snake  (constructor)  ----- */
+{ snake_count++; }  /* -----  end of method Snake::Snake  (constructor)  ----- */
 
-/*
- *--------------------------------------------------------------------------------------
- *       Class:  Snake
- *      Method:  ~Snake
- * Description:  destructor
- *--------------------------------------------------------------------------------------
- */
-Snake::~Snake ()
+Snake::Snake (std::pair<unsigned, unsigned> coords)
+    :Something(snake, "blue", true, coords, nullptr)
+    ,name_("Joe")
+{ snake_count++; }
+
+
+Snake::~Snake()
+{ snake_count--; }
+
+int Snake::size(void) const
 {
-    body_.clear();
-}  /* -----  end of method Snake::~Snake  (destructor)  ----- */
-
-/*
- *--------------------------------------------------------------------------------------
- *       Class:  Snake
- *      Method:  operator =
- * Description:  assignment operator
- *--------------------------------------------------------------------------------------
- */
-
-unsigned& Snake::size()
-{
-    return this->size_;
-}
-
-std::string& Snake::color()
-{
-    return this->color_;
-}
-
-unsigned& Snake::lives()
-{
-    return this->lives_;
-}
-
-char& Snake::direction()
-{
-    return this->direction_;
-}
-
-unsigned Snake::score() const
-{
-    return (this->lives_ * this->size_);
+    return snake_count;
 }
 
 std::string& Snake::name()
@@ -88,20 +113,14 @@ std::string& Snake::name()
     return this->name_;
 }
 
-std::pair<unsigned, unsigned> Snake::head() const
-{
-    if(this->body_.size())
-        return this->body_.at(0);
-    return std::make_pair(UINT_MAX, UINT_MAX);
-}
-
-void Snake::print() const
+void Snake::print(void)
 {
     std::cout << "Snake " << name_ << " :\n";
-    std::cout << "Color : " << color_ << '\n';
-    std::cout << "Size: " << size_ << '\n';
-    std::cout << "Lives left : " << lives_ << '\n';
+    std::cout << "Color : " << color() << '\n';
+    std::cout << "Size: " << snake_count << '\n';
 }
+
+int Snake::snake_count = 0;
 
 /*
  *--------------------------------------------------------------------------------------
@@ -110,52 +129,34 @@ void Snake::print() const
  * Description:  constructor
  *--------------------------------------------------------------------------------------
  */
-Food::Food (const char t, const std::string c, const unsigned i, const bool d,
-        unsigned y, unsigned x)
-    :type_(t)
-    ,color_(c)
+Food::Food (const unsigned i, const std::string color, const bool deadly, const std::pair<unsigned, unsigned> coords)
+    :Something(food, color, deadly, coords, nullptr)
     ,increase_(i)
-    ,deadly_(d)
-    ,coords_(y, x)
 {
     food_count++;
 }  /* -----  end of method Food::Food  (constructor)  ----- */
 
-Food::~Food()
+Food::~Food(void)
 {
     food_count--;
 }
 
-char Food::type() const
-{
-    return this->type_;
-}
-
-std::string& Food::color()
-{
-    return this->color_;
-}
-
-unsigned Food::increase() const
+int Food::increase(void) const
 {
     return this->increase_;
 }
 
-bool Food::deadly() const
+void Food::print(void)
 {
-    return this->deadly_;
-}
-
-std::pair<unsigned, unsigned>& Food::coords()
-{
-    return coords_;
-}
-
-void Food::print() const
-{
-    std::cout << "Food of type : " << type_ << ", color : " << color_ << \
+    std::cout << "Food of type : " << type() << ", color : " << color() << \
         ", I increase by : " << increase_ << ", am I deadly ? " << \
-        std::boolalpha << deadly_ << '\n';
+        std::boolalpha << deadly() << '\n';
+}
+
+void Food::on_trigger(Arena& arena)
+{
+    (void)arena;
+    std::cout << "MIOM MIOM MIOM delicious\n";
 }
 
 int Food::food_count = 0;
@@ -168,18 +169,25 @@ int Food::food_count = 0;
  *--------------------------------------------------------------------------------------
  */
 Banana::Banana (const unsigned y, const unsigned x)
-    :Food('B', "yellow", 2, false, y, x)
+    :Food(3, "yellow", false, std::make_pair(y, x))
 {
     std::cout << "Created a Banana" << '\n';
     banana_count++;
 }  /* -----  end of method Banana::Banana  (constructor)  ----- */
 
-Banana::~Banana()
+Banana::Banana (const std::pair<unsigned, unsigned> coords)
+    :Food(3, "yellow", false, coords)
+{
+    std::cout << "Created a Banana" << '\n';
+    banana_count++;
+}
+
+Banana::~Banana(void)
 {
     banana_count--;
 }
 
-void Banana::print () const
+void Banana::print (void)
 {
     std::cout << "I'm a banana, the fact that i'm deadly is " << std::boolalpha << deadly() <<\
         " and I increase your size by " << increase() << '\n';
@@ -195,18 +203,25 @@ int Banana::banana_count = 0;
  *--------------------------------------------------------------------------------------
  */
 Mushroom::Mushroom (const unsigned y, const unsigned x)
-    :Food('M', "red", -2, false, y, x)
+    :Food(-3, "red", true, std::make_pair(y, x))
 {
     std::cout<< "Created a Mushroom" << '\n'; 
     mushroom_count++;
 } /* -----  end of method Mushroom::Mushroom  (constructor)  ----- */
 
-Mushroom::~Mushroom ()
+Mushroom::Mushroom (const std::pair<unsigned, unsigned> coords)
+    :Food(-3, "red", true, coords)
+{
+    std::cout<< "Created a Mushroom" << '\n'; 
+    mushroom_count++;
+}
+
+Mushroom::~Mushroom (void)
 {
     mushroom_count--;
 }
 
-void Mushroom::print() const
+void Mushroom::print(void)
 {
  std::cout << "I'm a banana, the fact that i'm deadly is " << std::boolalpha << deadly() <<\
         " and I increase your size by " << increase() << '\n';
@@ -214,31 +229,55 @@ void Mushroom::print() const
 
 int Mushroom::mushroom_count = 0;
 
+
+/*
+ *--------------------------------------------------------------------------------------
+ *       Class:  LifeUp
+ *      Method:  LifeUp
+ * Description:  constructor
+ *--------------------------------------------------------------------------------------
+ */
+
+LifeUp::LifeUp (const unsigned y, const unsigned x)
+    :Food(0, "green", false, std::make_pair(y, x))
+{
+    life_count++;
+}
+
+LifeUp::LifeUp (std::pair<unsigned, unsigned> coords)
+    :Food(0, "green", false, coords)
+{
+    life_count++;
+}  /* -----  end of method LifeUp::LifeUp  (constructor)  ----- */
+
+LifeUp::~LifeUp (void)
+{
+    life_count--;
+}
+
+void LifeUp::print(void)
+{
+    std::cout << "I'm a life-up !\n";
+}
+
+int LifeUp::life_count = 0;
+
 SnakeBuilder& SnakeBuilder::set_color(const std::string color)
 {
     snake.color() = color;
     return *this;
 }
 
-SnakeBuilder& SnakeBuilder::set_life(const unsigned life)
-{
-    snake.lives() = life;
-    return *this;
-}
-
 SnakeBuilder& SnakeBuilder::set_name(const std::string name)
 {
-    snake.name() = name;
+    if (!name.empty())
+    {
+        snake.name() = name;
+    }
     return *this;
 }
 
-SnakeBuilder& SnakeBuilder::set_size(const unsigned size)
-{
-    snake.size() = size;
-    return *this;
-}
-
-Snake SnakeBuilder::build() const
+Snake SnakeBuilder::build(void) const
 {
     return this->snake;
 }
@@ -251,28 +290,37 @@ Snake SnakeBuilder::build() const
  * Description:  constructor
  *--------------------------------------------------------------------------------------
  */
-Arena ArenaBuilder::build() const
+Arena ArenaBuilder::build(void) const
 {
     return this->arena;
 }
 
-ArenaBuilder& ArenaBuilder::set_snake(Snake* snake)
+ArenaBuilder& ArenaBuilder::set_snake(std::vector<std::shared_ptr<Snake>> snake)
 {
-    arena.set_snake(snake);
+    arena.snake() = snake;
     return *this;
 }
 
-ArenaBuilder& ArenaBuilder::set_size(const unsigned size)
+ArenaBuilder& ArenaBuilder::set_size(const unsigned width, const unsigned height)
 {
-    arena.size() = size;
+    arena.width() = width;
+    arena.height() = height;
     return *this;
 }
 
-ArenaBuilder& ArenaBuilder::set_map(char** map)
+ArenaBuilder& ArenaBuilder::set_map(std::weak_ptr<Something>** map)
 {
-    arena.set_map(map);
+    arena.map() = map;
     return *this;
 }
+
+ArenaBuilder& ArenaBuilder::set_difficulty(int p)
+{
+    arena.difficulty() = p;
+    return *this;
+}
+
+
 
 /*
  *--------------------------------------------------------------------------------------
@@ -281,63 +329,150 @@ ArenaBuilder& ArenaBuilder::set_map(char** map)
  * Description:  constructor
  *--------------------------------------------------------------------------------------
  */
-Arena::Arena (const unsigned s)
-    :size_((s < 100) ? s : 100)
-    ,snake_(nullptr)
-    ,food_(std::vector<Food>{})
+Arena::Arena (const unsigned height, const unsigned  width)
+    :height_(height)
+    ,width_(width)
+    ,direction_(0)
+    ,snake_(std::vector<std::shared_ptr<Snake>>{})
+    ,food_(std::vector<std::shared_ptr<Food>>{})
+    ,wall_(std::vector<std::shared_ptr<Wall>>{})
     ,map_(nullptr)
-{}  /* -----  end of method Arena::Arena  (constructor)  ----- */
-
-Snake& Arena::snake()
+    ,difficulty_(0)
 {
-    return *(this->snake_);
+}  /* -----  end of method Arena::Arena  (constructor)  ----- */
+
+unsigned& Arena::width(void)
+{
+    return width_;
 }
 
-unsigned& Arena::size()
+unsigned& Arena::height(void)
 {
-    return this->size_;
+    return height_;
 }
 
-std::vector<Food>& Arena::food()
+Snake& Arena::head(void)
+{
+    return *(this->snake_.at(0));
+}
+
+std::vector<std::shared_ptr<Food>>& Arena::food(void)
 {
     return this->food_;
 }
 
-char** Arena::map() const
+std::vector<std::shared_ptr<Snake>>& Arena::snake(void)
 {
-    return map_;
+    return this->snake_;
 }
 
-void Arena::set_snake(Snake* snake)
+std::vector<std::shared_ptr<Wall>>& Arena::wall(void)
 {
-    this->snake_ = snake;
+    return this->wall_;
 }
 
-void Arena::set_map(char** map)
+std::weak_ptr<Something>**& Arena::map(void)
 {
-    this->map_ = map;
+    return this->map_;
 }
 
-bool Arena::in_bound() const
+int& Arena::difficulty()
 {
-    auto head = snake_->head();
-    auto y = std::get<0>(head);
-    auto x = std::get<1>(head);
-    return (y < size_ && x < size_);
+    return this->difficulty_;
 }
 
-char& Arena::get_pos(const unsigned y, const unsigned x) const 
+bool Arena::in_bound(const unsigned y, const unsigned x) const
+{
+    return (y < height_ && x < width_);
+}
+
+bool Arena::in_bound(const std::pair<unsigned, unsigned> pos) const
+{
+    return (pos.first < height_ && pos.second < width_);
+}
+
+std::weak_ptr<Something>& Arena::get_pos(const unsigned y, const unsigned x)
 {
     return map_[y][x];
 }
 
-char& Arena::get_pos(std::pair<const unsigned, const unsigned> pos) const
+std::weak_ptr<Something>& Arena::get_pos(std::pair<unsigned, unsigned> pos)
 {
-    return map_[std::get<0>(pos)][std::get<1>(pos)];
+    return map_[pos.first][pos.second];
 }
 
-void Arena::display() const
+void Arena::display(void) const
 {
-    snake_->print();
-    //Use library daddy told me to use ! 
+    std::cout << "Arena display to be implemented \n";
 }
+
+void Arena::add_something(std::shared_ptr<Something> something)
+{
+    Type type = something->type();
+    if (type == ::food)
+    {
+        food_.push_back(std::dynamic_pointer_cast<Food>(something));
+    }
+    else if (type == ::wall)
+    {
+        wall_.push_back(std::dynamic_pointer_cast<Wall>(something));
+    }
+    else if (type == ::snake)
+    {
+        snake_.push_back(std::dynamic_pointer_cast<Snake>(something));
+    }
+    else
+        throw std::logic_error("Trying to add something with wrong type");
+    get_pos(something->coords()) = something;
+}
+
+void Arena::init(void)
+{
+    for (unsigned i = 1; i < width_ ; ++i)
+        add_something(std::make_shared<Snake>(height_ / 2 , i));
+    unsigned y_temp;
+    unsigned x_temp;
+    for (auto i = 0; i < 4;)
+    {
+        y_temp = rand() % height_;
+        x_temp = rand() % width_;
+        if (get_pos(y_temp, x_temp).expired())
+            continue;
+        if (i < difficulty_)
+            add_something(std::make_shared<Mushroom>(y_temp, x_temp));
+        else
+            add_something(std::make_shared<Banana>(y_temp, x_temp));
+        ++i;
+    }
+}
+
+void Arena::update(void)
+{
+    std::cout << "To be implemented\n";
+}
+
+
+
+/*
+ *--------------------------------------------------------------------------------------
+ *       Class:  Wall
+ *      Method:  Wall
+ * Description:  constructor
+ *--------------------------------------------------------------------------------------
+ */
+Wall::Wall (const unsigned y, const unsigned x)
+    :Something(wall, "white", true, std::make_pair(y, x), nullptr)
+{
+}  /* -----  end of method Wall::Wall  (constructor)  ----- */
+
+Wall::Wall (std::pair<unsigned, unsigned> coords)
+    :Something(wall, "white", true, coords, nullptr)
+{
+}  /* -----  end of method Wall::Wall  (constructor)  ----- */
+
+void Wall::print(void)
+{
+    std::cout << "I'm a wall !\n";
+}
+
+int Wall::wall_count = 0;
