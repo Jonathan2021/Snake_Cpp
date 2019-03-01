@@ -20,8 +20,7 @@
 
 #include	<iostream>
 #include	<vector>
-
-#define ARENA_SIZE 80
+#include	<memory>
 
 /*
  * =====================================================================================
@@ -30,30 +29,78 @@
  *
  * =====================================================================================
  */
-class Food
+
+
+enum Type{
+    food,
+    wall,
+    snake,
+    nothing
+};
+
+enum Color{
+    red,
+    blue,
+    black,
+    white,
+    yellow,
+    green,
+    pink
+};
+
+/*
+ * =====================================================================================
+ *        Class:  Something
+ *  Description: virtual base class for all objects on map  
+ * =====================================================================================
+ */
+
+class Arena;
+
+class Something
+{
+    public:
+        /* ====================  LIFECYCLE     ======================================= */
+        Something (const Type type, const Color color, const bool deadly, std::pair<unsigned, unsigned> coords);                             /* constructor */
+
+        /* ====================  ACCESSORS     ======================================= */
+        Type& type(void);
+        Color& color(void);
+        std::pair<unsigned, unsigned>& coords(void);
+        bool& deadly(void);
+        /* ====================  MUTATORS      ======================================= */
+        virtual void print(void);
+        virtual void trigger(Arena& arena) = 0;
+        /* ====================  OPERATORS     ======================================= */
+
+        /* ====================  DATA MEMBERS  ======================================= */
+    protected:
+
+    private:
+        Type type_;
+        Color color_;
+        bool deadly_;
+        std::pair<unsigned, unsigned> coords_;
+}; /* -----  end of class Something  ----- */
+
+
+class Food : public Something
 {
     public:
 
         /* ====================  LIFECYCLE     ======================================= */
-        Food (const char t, const std::string c, const unsigned i, const bool d, unsigned y, unsigned x);                             /* constructor      */
-        virtual ~Food ();                            /* destructor       */
+        Food (const unsigned i, const Color color, const bool deadly, const std::pair<unsigned, unsigned> coords);
+        virtual ~Food (void);                            /* destructor       */
         /* ====================  ACCESSORS     ======================================= */
-            char type() const;
-            std::string& color();
-            unsigned increase() const;
-            bool deadly() const;
-            std::pair<unsigned, unsigned>& coords();
+            int increase(void) const;
         /* ====================  MUTATORS      ======================================= */
-            virtual void print() const;
+            virtual void print(void) override;
+            void trigger(Arena& arena) override;
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */
     private:
-        char type_;
-        std::string color_;
         int increase_;
-        bool deadly_;
-        std::pair<unsigned, unsigned> coords_;
         static int food_count;
 }; /* -----  end of class Food  ----- */
 
@@ -72,12 +119,13 @@ class Banana : public Food
     public:
 
         /* ====================  LIFECYCLE     ======================================= */
-        Banana (const unsigned y, const unsigned x);                             /* constructor      */
-        ~Banana ();                            /* destructor       */
+        Banana (const unsigned y, const unsigned x);
+        Banana (const std::pair<unsigned, unsigned> coords);/* constructor      */
+        ~Banana (void);                            /* destructor       */
 
         /* ====================  ACCESSORS     ======================================= */
         /* ====================  MUTATORS      ======================================= */
-        void print() const override;
+        void print(void) override;
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */
@@ -101,13 +149,14 @@ class Mushroom : public Food
     public:
 
         /* ====================  LIFECYCLE     ======================================= */
-        Mushroom (const unsigned y, const unsigned x);                             /* constructor      */
-        ~Mushroom ();                            /* destructor       */
+        Mushroom (const unsigned y, const unsigned x);
+        Mushroom (const std::pair<unsigned, unsigned> coords);/* constructor      */
+        ~Mushroom (void);                            /* destructor       */
 
         /* ====================  ACCESSORS     ======================================= */
 
         /* ====================  MUTATORS      ======================================= */
-        void print() const override;
+        void print(void) override;
         /* ====================  OPERATORS     ======================================= */
 
 
@@ -118,6 +167,34 @@ class Mushroom : public Food
         static int mushroom_count;
 }; /* -----  end of class Mushroom  ----- */
 
+
+/*
+ * =====================================================================================
+ *        Class:  LifeUp
+ *  Description:  
+ * =====================================================================================
+ */
+class LifeUp : public Food
+{
+    public:
+        /* ====================  LIFECYCLE     ======================================= */
+        LifeUp (const unsigned y, const unsigned x);
+        LifeUp (const std::pair<unsigned, unsigned> coords);/* constructor */
+        ~LifeUp (void);
+        /* ====================  ACCESSORS     ======================================= */
+
+        /* ====================  MUTATORS      ======================================= */
+        void print(void) override;
+        /* ====================  OPERATORS     ======================================= */
+
+        /* ====================  DATA MEMBERS  ======================================= */
+    protected:
+
+    private:
+        static int life_count;
+}; /* -----  end of class LifeUp  ----- */
+
+
 /*
  * =====================================================================================
  *        Class:  Snake
@@ -125,24 +202,21 @@ class Mushroom : public Food
  *
  * =====================================================================================
  */
-class Snake
+
+class Snake : public Something
 {
     public:
 
         /* ====================  LIFECYCLE     ======================================= */
-        Snake ();                             /* constructor      */
-        ~Snake ();                            /* destructor       */
+        Snake (unsigned y, unsigned x);                             /* constructor      */
+        Snake (std::pair<unsigned, unsigned> coords);
+        ~Snake (void);                            /* destructor       */
 
         /* ====================  ACCESSORS     ======================================= */
-        unsigned& size();
-        std::string& color();
-        unsigned& lives();
-        char& direction();
-        std::string& name();
+        int size(void) const;
         /* ====================  MUTATORS      ======================================= */
-        unsigned score() const;
-        void print() const;
-        std::pair<unsigned, unsigned> head() const;
+        void print(void) override;
+        void trigger(Arena& arena) override;
        /* ====================  OPERATORS     ======================================= */
 
 
@@ -150,12 +224,7 @@ class Snake
     protected:
 
     private:
-        std::string color_;
-        std::string name_;
-        unsigned size_;
-        char direction_;
-        unsigned lives_;
-        std::vector<std::pair<unsigned, unsigned>> body_;
+        static int snake_count;
 }; /* -----  end of class Snake  ----- */
 
 
@@ -175,21 +244,74 @@ class SnakeBuilder
         /* ====================  ACCESSORS     ======================================= */
 
         /* ====================  MUTATORS      ======================================= */
-            Snake build() const;
-            SnakeBuilder& set_color(const std::string color);
-            SnakeBuilder& set_life(const unsigned life);
-            SnakeBuilder& set_name(const std::string name);
-            SnakeBuilder& set_size(const unsigned size);
+        std::shared_ptr<Snake> build(void) const;
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */
     protected:
 
     private:
-        Snake snake;
+        std::shared_ptr<Snake> snake;
 
 }; /* -----  end of class SnakeBuilder  ----- */
 
+
+/*
+ * =====================================================================================
+ *        Class:  Wall
+ *  Description:  wall element
+ * =====================================================================================
+ */
+class Wall : public Something
+{
+    public:
+        /* ====================  LIFECYCLE     ======================================= */
+        Wall (const unsigned y, const unsigned x);
+        Wall (std::pair<unsigned, unsigned> coords);/* constructor */
+
+        /* ====================  ACCESSORS     ======================================= */
+        void print(void) override;
+        void trigger(Arena& arena) override;
+        /* ====================  MUTATORS      ======================================= */
+
+        /* ====================  OPERATORS     ======================================= */
+
+        /* ====================  DATA MEMBERS  ======================================= */
+    protected:
+
+    private:
+        static int wall_count;
+
+}; /* -----  end of class Wall  ----- */
+
+
+/*
+ * =====================================================================================
+ *        Class:  Player
+ *  Description:  information about the player
+ * =====================================================================================
+ */
+
+class Player
+{
+    public:
+        /* ====================  LIFECYCLE     ======================================= */
+        Player (std::string name);                             /* constructor */
+
+        /* ====================  ACCESSORS     ======================================= */
+        std::string& name(void);
+        unsigned& score(void); 
+        /* ====================  MUTATORS      ======================================= */
+
+        /* ====================  OPERATORS     ======================================= */
+
+        /* ====================  DATA MEMBERS  ======================================= */
+    protected:
+
+    private:
+        std::string& name_;
+        unsigned score_;
+}; /* -----  end of class Player  ----- */
 
 
 /*
@@ -203,30 +325,46 @@ class Arena
 {
     public:
         /* ====================  LIFECYCLE     ======================================= */
-        Arena(const unsigned s);                           /* constructor */
+        Arena(const unsigned height, const unsigned width);                           /* constructor */
         /* ====================  ACCESSORS     ======================================= */
-        Snake& snake();
-        unsigned& size();
-        std::vector<Food>& food();
-        char** map() const;
-        void set_snake(Snake* snake);
-        void set_map(char** map);
+        Snake& head(void);
+        unsigned& width(void);
+        unsigned& height(void);
+        unsigned& lives(void);
+        int& direction(void); 
+        std::vector<std::shared_ptr<Food>>& food(void);
+        std::vector<std::shared_ptr<Snake>>& snake(void);
+        std::vector<std::shared_ptr<Wall>>& wall(void);
+        std::weak_ptr<Something>**& map(void);
+        int& difficulty(void);
+        int& growth(void);
+        Player& player(void);
         /* ====================  MUTATORS      ======================================= */
-        bool in_bound() const;
-        char& get_pos(const unsigned y, const unsigned x) const;
-        char& get_pos(std::pair<const unsigned, const unsigned> pos) const;
-        void display() const;
+        bool in_bound(const std::pair<unsigned, unsigned> coords) const;
+        bool in_bound(const unsigned y, const unsigned x) const;
+        std::weak_ptr<Something>& get_pos(const unsigned y, const unsigned x);
+        std::weak_ptr<Something>& get_pos(std::pair<unsigned, unsigned> pos);
+        void display(void) const;
+        void init(void);
+        void update(void);
+        void add_something(std::shared_ptr<Something> something);
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */
     protected:
 
     private:
-        unsigned size_;
-        Snake* snake_;
-        std::vector<Food> food_;
-        char** map_;
-
+        unsigned height_;
+        unsigned width_;
+        unsigned lives_;
+        int direction_;
+        std::vector<std::shared_ptr<Snake>> snake_;
+        std::vector<std::shared_ptr<Food>> food_;
+        std::vector<std::shared_ptr<Wall>> wall_;
+        std::weak_ptr<Something>** map_;
+        int difficulty_;
+        int growth_;
+        Player player_;
 }; /* -----  end of class Arena  ----- */
 
 
@@ -242,14 +380,14 @@ class ArenaBuilder
 {
     public:
         /* ====================  LIFECYCLE     ======================================= */
-
+        ArenaBuilder();
         /* ====================  ACCESSORS     ======================================= */
 
         /* ====================  MUTATORS      ======================================= */
-        Arena build() const;
-        ArenaBuilder& set_snake(Snake* snake);
-        ArenaBuilder& set_size(const unsigned size);
-        ArenaBuilder& set_map(char** map);
+        Arena build(void) const;
+        ArenaBuilder& set_size(const unsigned height, const unsigned width);
+        ArenaBuilder& set_player(std::string name);
+        ArenaBuilder& set_difficulty(int p);
 
         /* ====================  OPERATORS     ======================================= */
 
