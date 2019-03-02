@@ -19,9 +19,10 @@
 
 #include	<iostream>
 #include	<assert.h>
+#include	<ncurses.h>
 #include	<climits>
 #include	<stdexcept>
-#include	<curses.h>
+#include	<ncurses.h>
 #include	<ctype.h>
 #include	<stdlib.h>
 #include	<memory>
@@ -348,6 +349,11 @@ int& Arena::growth(void)
     return this->growth_;
 }
 
+WINDOW*& Arena::window(void)
+{
+    return window_;
+}
+
 bool Arena::in_bound(const unsigned y, const unsigned x) const
 {
     return (y < height_ && x < width_);
@@ -368,9 +374,38 @@ std::weak_ptr<Something>& Arena::get_pos(std::pair<unsigned, unsigned> pos)
     return map_[pos.first][pos.second];
 }
 
+void Arena::new_direction(int key)
+{
+    if (key == direction_ || key != KEY_UP || key != KEY_DOWN || key != KEY_LEFT || key != KEY_RIGHT)
+        return;
+    if ((key == KEY_DOWN && direction_ != KEY_UP) || (key == KEY_UP && direction_ != KEY_DOWN) || \
+        (key == KEY_LEFT && direction_ != KEY_RIGHT) || (key == KEY_RIGHT && direction_ != KEY_LEFT))
+    {
+        direction_ = key;
+    }
+}
+
 void Arena::display(void) const
 {
     std::cout << "Arena display to be implemented \n";
+}
+
+char type_to_char(Type type)
+{
+    if (type == nothing)
+        return ' ';
+    if (type == food)
+        return 'F';
+    if (type == wall)
+        return 'W';
+    if (type == snake)
+        return 'S';
+    throw std::logic_error("type is none of the possible types");
+}
+
+void Arena::add_to_window(unsigned y, unsigned x, Type type)
+{
+    mvwaddch(window_, y, x, type_to_char(type));
 }
 
 void Arena::add_something(std::shared_ptr<Something> something)
@@ -390,7 +425,47 @@ void Arena::add_something(std::shared_ptr<Something> something)
     }
     else
         throw std::logic_error("Trying to add something with wrong type");
-    get_pos(something->coords()) = something;
+    auto pos = something->coords();
+    get_pos(pos) = something;
+    add_to_window(pos.first, pos.second, type);
+}
+
+void my_erase(std::vector<std::shared_ptr<Something>> vect, std::shared_ptr<Something> element, int nb, Arena& arena)
+{
+    for (auto it = vect.begin(); it != vect.end(); ++it)
+    {
+        if(*it == element)
+        {
+            std::pair<unsigned, unsigned> pos;
+            for (auto tmp = it; tmp != it + nb; ++tmp)
+            {
+                pos = (*tmp)->coords();
+                arena.add_to_window(pos.first, pos.second, nothing);
+            }
+            vect.erase(it, it + nb);
+        }
+    }
+}
+
+void Arena::remove_something(std::shared_ptr<Something> something, int nb)
+{
+    Type type = something->type();
+    std::vector<std::shared_ptr<Something>> vect;
+    if (type == ::food)
+    {
+        vect = food_;
+    }
+    else if (type == ::wall)
+    {
+        vect = wall_;
+    }
+    else if (type == ::snake)
+    {
+        vect = snake_;
+    }
+    else
+        throw std::logic_error("Trying to add something with wrong type");
+    my_erase(vect, something, nb, *this);
 }
 
 void Arena::init(void)
@@ -419,9 +494,16 @@ void Arena::init(void)
     }
 }
 
+std::pair<unsigned, unsigned> ahead(Arena& arena)
+
 void Arena::update(void)
 {
-    std::cout << "To be implemented\n";
+    auto pos = ahead(*this);
+    auto element = get_pos(pos);
+    if (!element.expired)
+    {
+        
+    }
 }
 
 Player& Arena::player(void)
@@ -478,6 +560,8 @@ unsigned& Player::score(void)
     return this->score_;
 }
 
+
+
 void Snake::trigger(Arena& arena)
 {
     auto& snake = arena.snake();
@@ -491,7 +575,7 @@ void Snake::trigger(Arena& arena)
             }
             snake.erase(i, snake.end());
             break;
-        }
+        }    
     }
     arena.lives()--;
 }

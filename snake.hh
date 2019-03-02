@@ -20,6 +20,7 @@
 
 #include	<iostream>
 #include	<vector>
+#include	<ncurses.h>
 #include	<memory>
 
 /*
@@ -339,15 +340,19 @@ class Arena
         int& difficulty(void);
         int& growth(void);
         Player& player(void);
+        WINDOW*& window(void);
         /* ====================  MUTATORS      ======================================= */
         bool in_bound(const std::pair<unsigned, unsigned> coords) const;
         bool in_bound(const unsigned y, const unsigned x) const;
         std::weak_ptr<Something>& get_pos(const unsigned y, const unsigned x);
         std::weak_ptr<Something>& get_pos(std::pair<unsigned, unsigned> pos);
+        void new_direction(int key);
         void display(void) const;
         void init(void);
         void update(void);
         void add_something(std::shared_ptr<Something> something);
+        void remove_something(std::shared_ptr<Something> somethingi, int nb);
+        void add_to_window(unsigned y, unsigned x, Type type);
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */
@@ -365,6 +370,7 @@ class Arena
         int difficulty_;
         int growth_;
         Player player_;
+        WINDOW* window_;
 }; /* -----  end of class Arena  ----- */
 
 
