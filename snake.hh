@@ -333,9 +333,9 @@ class Arena
         unsigned& height(void);
         unsigned& lives(void);
         int& direction(void); 
-        std::vector<std::shared_ptr<Food>>& food(void);
-        std::vector<std::shared_ptr<Snake>>& snake(void);
-        std::vector<std::shared_ptr<Wall>>& wall(void);
+        std::vector<std::shared_ptr<Something>>& food(void);
+        std::vector<std::shared_ptr<Something>>& snake(void);
+        std::vector<std::shared_ptr<Something>>& wall(void);
         std::weak_ptr<Something>**& map(void);
         int& difficulty(void);
         int& growth(void);
@@ -351,7 +351,7 @@ class Arena
         void init(void);
         void update(void);
         void add_something(std::shared_ptr<Something> something);
-        void remove_something(std::shared_ptr<Something> somethingi, int nb);
+        void remove_something(std::shared_ptr<Something> something, int nb);
         void add_to_window(unsigned y, unsigned x, Type type);
         /* ====================  OPERATORS     ======================================= */
 
@@ -363,9 +363,9 @@ class Arena
         unsigned width_;
         unsigned lives_;
         int direction_;
-        std::vector<std::shared_ptr<Snake>> snake_;
-        std::vector<std::shared_ptr<Food>> food_;
-        std::vector<std::shared_ptr<Wall>> wall_;
+        std::vector<std::shared_ptr<Something>> snake_;
+        std::vector<std::shared_ptr<Something>> food_;
+        std::vector<std::shared_ptr<Something>> wall_;
         std::weak_ptr<Something>** map_;
         int difficulty_;
         int growth_;

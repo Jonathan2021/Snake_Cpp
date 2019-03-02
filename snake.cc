@@ -289,9 +289,9 @@ Arena::Arena (const unsigned height, const unsigned  width)
     :height_(height)
     ,width_(width)
     ,direction_(0)
-    ,snake_(std::vector<std::shared_ptr<Snake>>{})
-    ,food_(std::vector<std::shared_ptr<Food>>{})
-    ,wall_(std::vector<std::shared_ptr<Wall>>{})
+    ,snake_(std::vector<std::shared_ptr<Something>>{})
+    ,food_(std::vector<std::shared_ptr<Something>>{})
+    ,wall_(std::vector<std::shared_ptr<Something>>{})
     ,map_(nullptr)
     ,difficulty_(0)
     ,growth_(0)
@@ -311,20 +311,20 @@ unsigned& Arena::height(void)
 
 Snake& Arena::head(void)
 {
-    return *(this->snake_.at(0));
+    return *(std::dynamic_pointer_cast<Snake>(this->snake_.at(0)));
 }
 
-std::vector<std::shared_ptr<Food>>& Arena::food(void)
+std::vector<std::shared_ptr<Something>>& Arena::food(void)
 {
     return this->food_;
 }
 
-std::vector<std::shared_ptr<Snake>>& Arena::snake(void)
+std::vector<std::shared_ptr<Something>>& Arena::snake(void)
 {
     return this->snake_;
 }
 
-std::vector<std::shared_ptr<Wall>>& Arena::wall(void)
+std::vector<std::shared_ptr<Something>>& Arena::wall(void)
 {
     return this->wall_;
 }
@@ -337,6 +337,11 @@ std::weak_ptr<Something>**& Arena::map(void)
 int& Arena::difficulty()
 {
     return this->difficulty_;
+}
+
+int& Arena::direction(void)
+{
+    return direction_;
 }
 
 unsigned& Arena::lives(void)
@@ -408,26 +413,32 @@ void Arena::add_to_window(unsigned y, unsigned x, Type type)
     mvwaddch(window_, y, x, type_to_char(type));
 }
 
-void Arena::add_something(std::shared_ptr<Something> something)
+
+std::vector<std::shared_ptr<Something>>& get_vect(Arena& arena, std::shared_ptr<Something> something)
 {
     Type type = something->type();
-    if (type == ::food)
+    if (type == food)
     {
-        food_.push_back(std::dynamic_pointer_cast<Food>(something));
+        return arena.food();
     }
-    else if (type == ::wall)
+    else if (type == wall)
     {
-        wall_.push_back(std::dynamic_pointer_cast<Wall>(something));
+        return arena.wall();
     }
-    else if (type == ::snake)
+    else if (type == snake)
     {
-        snake_.push_back(std::dynamic_pointer_cast<Snake>(something));
+        return arena.snake();
     }
     else
         throw std::logic_error("Trying to add something with wrong type");
+}
+
+void Arena::add_something(std::shared_ptr<Something> something)
+{
+    auto vect = get_vect(*this, something); 
+    vect.push_back(something);
     auto pos = something->coords();
-    get_pos(pos) = something;
-    add_to_window(pos.first, pos.second, type);
+    add_to_window(pos.first, pos.second, something->type());
 }
 
 void my_erase(std::vector<std::shared_ptr<Something>> vect, std::shared_ptr<Something> element, int nb, Arena& arena)
@@ -449,22 +460,7 @@ void my_erase(std::vector<std::shared_ptr<Something>> vect, std::shared_ptr<Some
 
 void Arena::remove_something(std::shared_ptr<Something> something, int nb)
 {
-    Type type = something->type();
-    std::vector<std::shared_ptr<Something>> vect;
-    if (type == ::food)
-    {
-        vect = food_;
-    }
-    else if (type == ::wall)
-    {
-        vect = wall_;
-    }
-    else if (type == ::snake)
-    {
-        vect = snake_;
-    }
-    else
-        throw std::logic_error("Trying to add something with wrong type");
+    auto vect = get_vect(*this, something);
     my_erase(vect, something, nb, *this);
 }
 
@@ -495,15 +491,33 @@ void Arena::init(void)
 }
 
 std::pair<unsigned, unsigned> ahead(Arena& arena)
+{
+    auto cur = arena.head().coords();
+    int dir = arena.direction();
+    if (dir == KEY_UP)
+        cur.first -= 1;
+    if (dir == KEY_DOWN)
+        cur.first += 1;
+    if (dir == KEY_LEFT)
+        cur.second -= 1;
+    if (dir == KEY_RIGHT)
+        cur.second += 1;
+    return cur;
+}
 
 void Arena::update(void)
 {
     auto pos = ahead(*this);
     auto element = get_pos(pos);
-    if (!element.expired)
+    if (!element.expired())
     {
-        
+        element.lock()->trigger(*this);
     }
+    add_something(std::make_shared<Snake>(pos));
+    if(growth_)
+        growth_--;
+    else
+        remove_something(snake_.back(), 1);
 }
 
 Player& Arena::player(void)
@@ -587,7 +601,7 @@ void Food::trigger(Arena& arena)
     {
         if (&**it == this)
         {
-            arena.growth() += (*it)->increase();
+            arena.growth() += (std::dynamic_pointer_cast<Food>(*it))->increase();
             break;
         }
     }
