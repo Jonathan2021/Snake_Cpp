@@ -65,11 +65,6 @@ bool& Something::deadly(void)
     return deadly_;
 }
 
-void Something::print(void)
-{
-    std::cout << "Something, deadly? " << std::boolalpha << deadly_ << '\n';
-}
-
 /*
  *--------------------------------------------------------------------------------------
  *       Class:  Snake
@@ -94,9 +89,9 @@ int Snake::size(void) const
     return snake_count;
 }
 
-void Snake::print(void)
+char Snake::print(void)
 {
-    std::cout << "I'm a snake\n";
+    return 'S';
 }
 
 int Snake::snake_count = 0;
@@ -125,11 +120,9 @@ int Food::increase(void) const
     return this->increase_;
 }
 
-void Food::print(void)
+char Food::print(void)
 {
-    std::cout << "Food of type : " << type() <<  \
-        ", I increase by : " << increase_ << ", am I deadly ? " << \
-        std::boolalpha << deadly() << '\n';
+    return 'F';
 }
 
 int Food::food_count = 0;
@@ -160,10 +153,9 @@ Banana::~Banana(void)
     banana_count--;
 }
 
-void Banana::print (void)
+char Banana::print (void)
 {
-    std::cout << "I'm a banana, the fact that i'm deadly is " << std::boolalpha << deadly() <<\
-        " and I increase your size by " << increase() << '\n';
+    return 'B';
 }
 
 int Banana::banana_count = 0;
@@ -194,10 +186,9 @@ Mushroom::~Mushroom (void)
     mushroom_count--;
 }
 
-void Mushroom::print(void)
+char Mushroom::print(void)
 {
- std::cout << "I'm a banana, the fact that i'm deadly is " << std::boolalpha << deadly() <<\
-        " and I increase your size by " << increase() << '\n';
+    return 'M';
 }
 
 int Mushroom::mushroom_count = 0;
@@ -228,9 +219,9 @@ LifeUp::~LifeUp (void)
     life_count--;
 }
 
-void LifeUp::print(void)
+char LifeUp::print(void)
 {
-    std::cout << "I'm a life-up !\n";
+    return 'L';
 }
 
 int LifeUp::life_count = 0;
@@ -395,22 +386,9 @@ void Arena::display(void) const
     std::cout << "Arena display to be implemented \n";
 }
 
-char type_to_char(Type type)
+void Arena::add_to_window(unsigned y, unsigned x, char c)
 {
-    if (type == nothing)
-        return ' ';
-    if (type == food)
-        return 'F';
-    if (type == wall)
-        return 'W';
-    if (type == snake)
-        return 'S';
-    throw std::logic_error("type is none of the possible types");
-}
-
-void Arena::add_to_window(unsigned y, unsigned x, Type type)
-{
-    mvwaddch(window_, y, x, type_to_char(type));
+    mvwaddch(window_, y, x, c);
 }
 
 
@@ -433,15 +411,19 @@ std::vector<std::shared_ptr<Something>>& get_vect(Arena& arena, std::shared_ptr<
         throw std::logic_error("Trying to add something with wrong type");
 }
 
-void Arena::add_something(std::shared_ptr<Something> something)
+void add_something_to_window(Arena& arena, std::shared_ptr<Something> something)
 {
-    auto vect = get_vect(*this, something); 
-    vect.push_back(something);
-    auto pos = something->coords();
-    add_to_window(pos.first, pos.second, something->type());
+    arena.add_to_window(something->coords().first, something->coords().second, something->print());
 }
 
-void my_erase(std::vector<std::shared_ptr<Something>> vect, std::shared_ptr<Something> element, int nb, Arena& arena)
+void Arena::add_something(std::shared_ptr<Something> something)
+{
+    auto& vect = get_vect(*this, something); 
+    vect.push_back(something);
+    add_something_to_window(*this, something);
+}
+
+void my_erase(std::vector<std::shared_ptr<Something>>& vect, std::shared_ptr<Something> element, int nb, Arena& arena)
 {
     for (auto it = vect.begin(); it != vect.end(); ++it)
     {
@@ -451,9 +433,10 @@ void my_erase(std::vector<std::shared_ptr<Something>> vect, std::shared_ptr<Some
             for (auto tmp = it; tmp != it + nb; ++tmp)
             {
                 pos = (*tmp)->coords();
-                arena.add_to_window(pos.first, pos.second, nothing);
+                arena.add_to_window(pos.first, pos.second, ' ');
             }
             vect.erase(it, it + nb);
+            break;
         }
     }
 }
@@ -466,6 +449,8 @@ void Arena::remove_something(std::shared_ptr<Something> something, int nb)
 
 void Arena::init(void)
 {
+    window_ = newwin(height_, width_, 0, 0);
+    lives_ = 3 - difficulty_;
     map_ = new std::weak_ptr<Something>*[height_];
     for (unsigned i = 0; i < height_; ++i)
         map_[i] = new std::weak_ptr<Something>[width_]();
@@ -480,7 +465,7 @@ void Arena::init(void)
     {
         y_temp = rand() % height_;
         x_temp = rand() % width_;
-        if (get_pos(y_temp, x_temp).expired())
+        if (!get_pos(y_temp, x_temp).expired())
             continue;
         if (i < difficulty_)
             add_something(std::make_shared<Mushroom>(y_temp, x_temp));
@@ -513,11 +498,18 @@ void Arena::update(void)
     {
         element.lock()->trigger(*this);
     }
-    add_something(std::make_shared<Snake>(pos));
-    if(growth_)
+    if(growth_ > 0)
+    {
+        add_something(std::make_shared<Snake>(pos));
         growth_--;
-    else
+        return;
+    }
+    else if (growth_ < 0)
+    {
         remove_something(snake_.back(), 1);
+        growth_++;
+    }
+    remove_something(snake_.back(), 1);
 }
 
 Player& Arena::player(void)
@@ -542,9 +534,9 @@ Wall::Wall (std::pair<unsigned, unsigned> coords)
 {
 }  /* -----  end of method Wall::Wall  (constructor)  ----- */
 
-void Wall::print(void)
+char Wall::print(void)
 {
-    std::cout << "I'm a wall !\n";
+    return 'W';
 }
 
 int Wall::wall_count = 0;

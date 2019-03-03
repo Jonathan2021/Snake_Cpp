@@ -70,7 +70,7 @@ class Something
         std::pair<unsigned, unsigned>& coords(void);
         bool& deadly(void);
         /* ====================  MUTATORS      ======================================= */
-        virtual void print(void);
+        virtual char print(void) = 0;
         virtual void trigger(Arena& arena) = 0;
         /* ====================  OPERATORS     ======================================= */
 
@@ -95,7 +95,7 @@ class Food : public Something
         /* ====================  ACCESSORS     ======================================= */
             int increase(void) const;
         /* ====================  MUTATORS      ======================================= */
-            virtual void print(void) override;
+            virtual char print(void) override;
             void trigger(Arena& arena) override;
         /* ====================  OPERATORS     ======================================= */
 
@@ -126,7 +126,7 @@ class Banana : public Food
 
         /* ====================  ACCESSORS     ======================================= */
         /* ====================  MUTATORS      ======================================= */
-        void print(void) override;
+        char print(void) override;
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */
@@ -157,7 +157,7 @@ class Mushroom : public Food
         /* ====================  ACCESSORS     ======================================= */
 
         /* ====================  MUTATORS      ======================================= */
-        void print(void) override;
+        char print(void) override;
         /* ====================  OPERATORS     ======================================= */
 
 
@@ -185,7 +185,7 @@ class LifeUp : public Food
         /* ====================  ACCESSORS     ======================================= */
 
         /* ====================  MUTATORS      ======================================= */
-        void print(void) override;
+        char print(void) override;
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */
@@ -216,7 +216,7 @@ class Snake : public Something
         /* ====================  ACCESSORS     ======================================= */
         int size(void) const;
         /* ====================  MUTATORS      ======================================= */
-        void print(void) override;
+        char print(void) override;
         void trigger(Arena& arena) override;
        /* ====================  OPERATORS     ======================================= */
 
@@ -271,7 +271,7 @@ class Wall : public Something
         Wall (std::pair<unsigned, unsigned> coords);/* constructor */
 
         /* ====================  ACCESSORS     ======================================= */
-        void print(void) override;
+        char print(void) override;
         void trigger(Arena& arena) override;
         /* ====================  MUTATORS      ======================================= */
 
@@ -352,7 +352,7 @@ class Arena
         void update(void);
         void add_something(std::shared_ptr<Something> something);
         void remove_something(std::shared_ptr<Something> something, int nb);
-        void add_to_window(unsigned y, unsigned x, Type type);
+        void add_to_window(unsigned y, unsigned x, char c);
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */

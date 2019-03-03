@@ -19,9 +19,11 @@
 #include	<stdlib.h>
 #include	<ctype.h>
 #include	<iostream>
-#include	<ncurses.h>
 #include	<string>
 #include	<stdexcept>
+#include	<ncurses.h>
+#include	<assert.h>
+#include	<unistd.h>
 #include	"snake.hh"
 
 
@@ -76,33 +78,31 @@ bool is_number(std::string str)
 
 void select_size(ArenaBuilder& builder)
 {
-    int max_height, max_width;
+    unsigned max_height = 0;
+    unsigned max_width = 0;
     bool choose;
-    getmaxyx(stdscr, max_height, max_width);
     std::cout << "Want to choose arena_size ?";
     choose = yes_no();
     if (choose)
     {
-        int height, width;
+        unsigned height, width;
         std::string token;
         do
         {
-            std::cout << "\nEnter a number for the height : ";
+            std::cout << "\nEnter a positive number for the height : ";
             getline(std::cin, token);
-        } while(!is_number(token));
-        height = std::stoi(token);
+        } while(!is_number(token) && (height = std::stoi(token)) <= 0);
         do
         {
-            std::cout << "\nEnter a number for the width : ";
+            std::cout << "\nEnter a positive number for the width : ";
             getline(std::cin, token);
-        } while(!is_number(token));
-        width = std::stoi(token);
-        max_height = (max_height < height) ? max_height : height;
-        max_width = (max_width < width) ? max_width : width;
-    }
-    if(max_height <= 0 || max_width <= 0)
-    {
-        throw std::logic_error("Can't have negative or size in arena");
+        } while(!is_number(token) && (width = std::stoi(token)) <= 0);
+        if(height <= 0 || width <= 0)
+        {
+            throw std::logic_error("Can't have negative or size in arena");
+        }
+        max_height = height;
+        max_width = width;
     }
     builder.set_size(max_height, max_width);
 }
@@ -126,17 +126,38 @@ Arena make_arena()
 
 void curses_routine(void)
 {
-    stdscr = initscr();
+    initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
     nodelay(stdscr, TRUE);
 }
 
+void check_size(Arena& arena)
+{
+    int h, w;
+    getmaxyx(stdscr, h, w);
+    assert(h > 0 && w > 0);
+    unsigned& cur_h = arena.height();
+    unsigned& cur_w = arena.width();
+    cur_h = (cur_h > (unsigned)h || !cur_h) ? h : cur_h;
+    cur_w = (cur_w > (unsigned)w || !cur_w) ? w : cur_w;
+}
+
+void arena_checks(Arena& arena)
+{
+    check_size(arena);
+    assert(arena.width() > 0 && arena.height() > 0);
+    arena.init();
+    assert(arena.lives() > 0);
+}
+
 void start_game(Arena& arena)
 {
     curses_routine();
-    WINDOW* window =  newwin(arena.height(), arena.width(), 0, 0);
+    arena_checks(arena);
+    WINDOW*& window = arena.window(); 
+    wattron(window, A_BOLD);
     wmove(window, 0, 0);
     int key = 0;
     int next_key;
@@ -147,13 +168,15 @@ void start_game(Arena& arena)
         arena.new_direction(key);
         arena.update();
         wrefresh(window);
+        usleep(500);
     }
-    endwin();
+    wattroff(window, A_BOLD);
 }
 
 int main (void)
 {
     Arena arena = make_arena();
     start_game(arena);
+    endwin();
     return EXIT_SUCCESS;
 }				/* ----------  end of function main  ---------- */
