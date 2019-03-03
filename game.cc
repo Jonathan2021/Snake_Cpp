@@ -147,7 +147,7 @@ void check_size(Arena& arena)
 void arena_checks(Arena& arena)
 {
     check_size(arena);
-    assert(arena.width() > 0 && arena.height() > 0);
+    assert(arena.width() > 1 && arena.height() > 1);
     arena.init();
     assert(arena.lives() > 0);
 }

@@ -447,6 +447,42 @@ void Arena::remove_something(std::shared_ptr<Something> something, int nb)
     my_erase(vect, something, nb, *this);
 }
 
+void suround(Arena& arena)
+{
+    unsigned w = arena.width();
+    unsigned h = arena.height();
+    for(unsigned i = 0; i < w; ++i)
+    {
+        arena.add_something(std::make_shared<Wall>(0, i));
+        arena.add_something(std::make_shared<Wall>(h - 1, i));
+    }
+    for (unsigned i = 0; i < h; ++i)
+    {
+        arena.add_something(std::make_shared<Wall>(i, 0));
+        arena.add_something(std::make_shared<Wall>(i, w - 1));
+    }
+}
+
+void random_pos(Arena& arena, std::shared_ptr<Something> something)
+{
+    unsigned rand_y;
+    unsigned rand_x;
+    unsigned h = arena.height();
+    unsigned w = arena.width();
+    do
+    {
+        rand_y = rand() % h;
+        rand_x = rand() % w;
+    } while(!arena.get_pos(rand_y, rand_x).expired());
+    something->coords() = std::make_pair(rand_y, rand_x);
+}
+
+void random_place(Arena& arena, std::shared_ptr<Something> something)
+{
+    random_pos(arena,something);
+    arena.add_something(something);
+}
+
 void Arena::init(void)
 {
     window_ = newwin(height_, width_, 0, 0);
@@ -454,6 +490,7 @@ void Arena::init(void)
     map_ = new std::weak_ptr<Something>*[height_];
     for (unsigned i = 0; i < height_; ++i)
         map_[i] = new std::weak_ptr<Something>[width_]();
+    suround(*this);
     if (snake_.empty())
     {
         add_something(std::make_shared<Snake>(height_ / 2 , width_ / 2));
@@ -461,17 +498,12 @@ void Arena::init(void)
     }
     unsigned y_temp;
     unsigned x_temp;
-    for (auto i = 0; i < 4;)
+    for (auto i = 0; i < 4; ++i)
     {
-        y_temp = rand() % height_;
-        x_temp = rand() % width_;
-        if (!get_pos(y_temp, x_temp).expired())
-            continue;
         if (i < difficulty_)
-            add_something(std::make_shared<Mushroom>(y_temp, x_temp));
+            random_place(*this, std::make_shared<Mushroom>(y_temp, x_temp));
         else
-            add_something(std::make_shared<Banana>(y_temp, x_temp));
-        ++i;
+            random_place(*this, std::make_shared<Banana>(y_temp, x_temp));
     }
 }
 
@@ -498,9 +530,9 @@ void Arena::update(void)
     {
         element.lock()->trigger(*this);
     }
+    add_something(std::make_shared<Snake>(ahead(*this)));
     if(growth_ > 0)
     {
-        add_something(std::make_shared<Snake>(pos));
         growth_--;
         return;
     }
@@ -588,12 +620,15 @@ void Snake::trigger(Arena& arena)
 
 void Food::trigger(Arena& arena)
 {
-    auto& food = arena.food();
+    auto food = arena.food();
     for (auto it = food.begin(); it != food.end(); ++it)
     {
         if (&**it == this)
         {
+            arena.add_to_window((*it)->coords().first, (*it)->coords().second, ' ');
             arena.growth() += (std::dynamic_pointer_cast<Food>(*it))->increase();
+            random_pos(arena, *it);
+            arena.add_to_window((*it)->coords().first, (*it)->coords().second, (*it)->print());
             break;
         }
     }
