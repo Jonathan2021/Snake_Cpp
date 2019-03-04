@@ -72,6 +72,7 @@ class Something
         /* ====================  MUTATORS      ======================================= */
         virtual char print(void) = 0;
         virtual void trigger(Arena& arena) = 0;
+        virtual std::shared_ptr<Something> clone(void) = 0;
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */
@@ -97,6 +98,7 @@ class Food : public Something
         /* ====================  MUTATORS      ======================================= */
             virtual char print(void) override;
             void trigger(Arena& arena) override;
+            virtual std::shared_ptr<Something> clone(void) override;
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */
@@ -127,6 +129,7 @@ class Banana : public Food
         /* ====================  ACCESSORS     ======================================= */
         /* ====================  MUTATORS      ======================================= */
         char print(void) override;
+        std::shared_ptr<Something> clone(void) override;
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */
@@ -158,6 +161,7 @@ class Mushroom : public Food
 
         /* ====================  MUTATORS      ======================================= */
         char print(void) override;
+        std::shared_ptr<Something> clone(void) override;
         /* ====================  OPERATORS     ======================================= */
 
 
@@ -186,6 +190,7 @@ class LifeUp : public Food
 
         /* ====================  MUTATORS      ======================================= */
         char print(void) override;
+        std::shared_ptr<Something> clone(void) override;
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */
@@ -218,6 +223,7 @@ class Snake : public Something
         /* ====================  MUTATORS      ======================================= */
         char print(void) override;
         void trigger(Arena& arena) override;
+        std::shared_ptr<Something> clone(void) override;
        /* ====================  OPERATORS     ======================================= */
 
 
@@ -273,6 +279,7 @@ class Wall : public Something
         /* ====================  ACCESSORS     ======================================= */
         char print(void) override;
         void trigger(Arena& arena) override;
+        std::shared_ptr<Something> clone(void) override;
         /* ====================  MUTATORS      ======================================= */
 
         /* ====================  OPERATORS     ======================================= */
@@ -328,7 +335,8 @@ class Arena
         /* ====================  LIFECYCLE     ======================================= */
         Arena(const unsigned height, const unsigned width);                           /* constructor */
         /* ====================  ACCESSORS     ======================================= */
-        Snake& head(void);
+        std::shared_ptr<Something>& head(void);
+        std::shared_ptr<Something>& tail(void);
         unsigned& width(void);
         unsigned& height(void);
         unsigned& lives(void);

@@ -94,6 +94,11 @@ char Snake::print(void)
     return 'S';
 }
 
+std::shared_ptr<Something> Snake::clone(void)
+{
+    return std::make_shared<Snake>(coords());
+}
+
 int Snake::snake_count = 0;
 
 /*
@@ -125,6 +130,12 @@ char Food::print(void)
     return 'F';
 }
 
+std::shared_ptr<Something> Food::clone(void)
+{
+    return std::make_shared<Food>(increase_,color(), deadly(), coords());
+}
+
+
 int Food::food_count = 0;
 
 /*
@@ -137,14 +148,12 @@ int Food::food_count = 0;
 Banana::Banana (const unsigned y, const unsigned x)
     :Food(3, yellow, false, std::make_pair(y, x))
 {
-    std::cout << "Created a Banana" << '\n';
     banana_count++;
 }  /* -----  end of method Banana::Banana  (constructor)  ----- */
 
 Banana::Banana (const std::pair<unsigned, unsigned> coords)
     :Food(3, yellow, false, coords)
 {
-    std::cout << "Created a Banana" << '\n';
     banana_count++;
 }
 
@@ -156,6 +165,11 @@ Banana::~Banana(void)
 char Banana::print (void)
 {
     return 'B';
+}
+
+std::shared_ptr<Something> Banana::clone(void)
+{
+    return std::make_shared<Banana>(coords());
 }
 
 int Banana::banana_count = 0;
@@ -170,14 +184,12 @@ int Banana::banana_count = 0;
 Mushroom::Mushroom (const unsigned y, const unsigned x)
     :Food(-3, red, true, std::make_pair(y, x))
 {
-    std::cout<< "Created a Mushroom" << '\n'; 
     mushroom_count++;
 } /* -----  end of method Mushroom::Mushroom  (constructor)  ----- */
 
 Mushroom::Mushroom (const std::pair<unsigned, unsigned> coords)
     :Food(-3, red, true, coords)
 {
-    std::cout<< "Created a Mushroom" << '\n'; 
     mushroom_count++;
 }
 
@@ -189,6 +201,11 @@ Mushroom::~Mushroom (void)
 char Mushroom::print(void)
 {
     return 'M';
+}
+
+std::shared_ptr<Something> Mushroom::clone(void)
+{
+    return std::make_shared<Mushroom>(coords());
 }
 
 int Mushroom::mushroom_count = 0;
@@ -222,6 +239,11 @@ LifeUp::~LifeUp (void)
 char LifeUp::print(void)
 {
     return 'L';
+}
+
+std::shared_ptr<Something> LifeUp::clone(void)
+{
+    return std::make_shared<LifeUp>(coords());
 }
 
 int LifeUp::life_count = 0;
@@ -300,9 +322,14 @@ unsigned& Arena::height(void)
     return height_;
 }
 
-Snake& Arena::head(void)
+std::shared_ptr<Something>& Arena::head(void)
 {
-    return *(std::dynamic_pointer_cast<Snake>(this->snake_.at(0)));
+    return this->snake_.front();
+}
+
+std::shared_ptr<Something>& Arena::tail(void)
+{
+    return this->snake_.back();
 }
 
 std::vector<std::shared_ptr<Something>>& Arena::food(void)
@@ -372,7 +399,7 @@ std::weak_ptr<Something>& Arena::get_pos(std::pair<unsigned, unsigned> pos)
 
 void Arena::new_direction(int key)
 {
-    if (key == direction_ || key != KEY_UP || key != KEY_DOWN || key != KEY_LEFT || key != KEY_RIGHT)
+    if (key == direction_ || (key != KEY_UP && key != KEY_DOWN && key != KEY_LEFT && key != KEY_RIGHT))
         return;
     if ((key == KEY_DOWN && direction_ != KEY_UP) || (key == KEY_UP && direction_ != KEY_DOWN) || \
         (key == KEY_LEFT && direction_ != KEY_RIGHT) || (key == KEY_RIGHT && direction_ != KEY_LEFT))
@@ -419,7 +446,8 @@ void add_something_to_window(Arena& arena, std::shared_ptr<Something> something)
 void Arena::add_something(std::shared_ptr<Something> something)
 {
     auto& vect = get_vect(*this, something); 
-    vect.push_back(something);
+    get_pos(something->coords()) = something;
+    vect.insert(vect.begin(), something);
     add_something_to_window(*this, something);
 }
 
@@ -443,7 +471,11 @@ void my_erase(std::vector<std::shared_ptr<Something>>& vect, std::shared_ptr<Som
 
 void Arena::remove_something(std::shared_ptr<Something> something, int nb)
 {
-    auto vect = get_vect(*this, something);
+    auto& vect = get_vect(*this, something);
+    if (vect.empty())
+    {
+        throw std::logic_error("trying to remove something from nothing");
+    }
     my_erase(vect, something, nb, *this);
 }
 
@@ -461,6 +493,12 @@ void suround(Arena& arena)
         arena.add_something(std::make_shared<Wall>(i, 0));
         arena.add_something(std::make_shared<Wall>(i, w - 1));
     }
+}
+
+template <typename T>
+bool is_uninitialized(std::weak_ptr<T> const& weak) {
+    using wt = std::weak_ptr<T>;
+    return !weak.owner_before(wt{}) && !wt{}.owner_before(weak);
 }
 
 void random_pos(Arena& arena, std::shared_ptr<Something> something)
@@ -509,28 +547,63 @@ void Arena::init(void)
 
 std::pair<unsigned, unsigned> ahead(Arena& arena)
 {
-    auto cur = arena.head().coords();
+    auto cur = arena.head()->coords();
     int dir = arena.direction();
+    unsigned h = arena.height();
+    unsigned w = arena.width();
     if (dir == KEY_UP)
+    {
         cur.first -= 1;
-    if (dir == KEY_DOWN)
+        if (cur.first >= h)
+            cur.first = h - 1;
+
+    }
+    else if (dir == KEY_DOWN)
+    {
         cur.first += 1;
-    if (dir == KEY_LEFT)
+        if (cur.first >= h)
+            cur.first = 0;
+    }
+    else if (dir == KEY_LEFT)
+    {
         cur.second -= 1;
-    if (dir == KEY_RIGHT)
+        if (cur.first >= w)
+            cur.first = w - 1;
+    }
+    else if (dir == KEY_RIGHT)
+    {
         cur.second += 1;
+        if (cur.first >= w)
+            cur.first = 0;
+    }
+    assert(arena.in_bound(cur));
     return cur;
+}
+
+void remove_tail(Arena& arena)
+{
+    arena.remove_something(arena.tail(), 1);
+}
+
+void remove_head(Arena& arena)
+{
+    arena.remove_something(arena.head(), 1);
 }
 
 void Arena::update(void)
 {
+    if (!direction_)
+        return;
     auto pos = ahead(*this);
+    assert(pos != head()->coords());
     auto element = get_pos(pos);
     if (!element.expired())
     {
         element.lock()->trigger(*this);
+        pos = (ahead(*this));
     }
-    add_something(std::make_shared<Snake>(ahead(*this)));
+    assert(pos != head()->coords());
+    add_something(std::make_shared<Snake>(pos));
     if(growth_ > 0)
     {
         growth_--;
@@ -538,10 +611,11 @@ void Arena::update(void)
     }
     else if (growth_ < 0)
     {
-        remove_something(snake_.back(), 1);
+        if (!snake_.empty())
+            remove_tail(*this);
         growth_++;
     }
-    remove_something(snake_.back(), 1);
+    remove_tail(*this);
 }
 
 Player& Arena::player(void)
@@ -569,6 +643,11 @@ Wall::Wall (std::pair<unsigned, unsigned> coords)
 char Wall::print(void)
 {
     return 'W';
+}
+
+std::shared_ptr<Something> Wall::clone(void)
+{
+    return std::make_shared<Wall>(coords());
 }
 
 int Wall::wall_count = 0;
@@ -623,12 +702,16 @@ void Food::trigger(Arena& arena)
     auto food = arena.food();
     for (auto it = food.begin(); it != food.end(); ++it)
     {
-        if (&**it == this)
+        if ((*it).get() == this)
         {
             arena.add_to_window((*it)->coords().first, (*it)->coords().second, ' ');
             arena.growth() += (std::dynamic_pointer_cast<Food>(*it))->increase();
-            random_pos(arena, *it);
-            arena.add_to_window((*it)->coords().first, (*it)->coords().second, (*it)->print());
+            if ((*it)->deadly())
+                arena.lives()--; 
+            auto baby = (*it)->clone();
+            random_pos(arena, baby);
+            arena.remove_something(*it, 1);
+            arena.add_something(baby);
             break;
         }
     }
@@ -636,8 +719,7 @@ void Food::trigger(Arena& arena)
 
 void Wall::trigger(Arena& arena)
 {
-    //auto coords = arena.snake().front()->coords();
-    arena.snake().erase(arena.snake().begin());
+    remove_head(arena);
     arena.lives()--;
 }
 
