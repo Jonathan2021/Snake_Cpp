@@ -24,7 +24,7 @@
 #include	<ncurses.h>
 #include	<assert.h>
 #include	<unistd.h>
-#include	"snake.hh"
+#include	"include/snake.hh"
 
 
 void uppercase(std::string& str)

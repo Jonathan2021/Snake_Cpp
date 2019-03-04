@@ -26,7 +26,7 @@
 #include	<ctype.h>
 #include	<stdlib.h>
 #include	<memory>
-#include	"snake.hh"
+#include	"include/snake.hh"
 
 
 
