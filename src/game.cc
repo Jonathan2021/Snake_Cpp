@@ -55,10 +55,11 @@ void select_difficulty(ArenaBuilder& builder)
     {
         std::cout << "\nChoose a difficulty level: High (h), Medium (m), Low (l) : ";
         std::getline(std::cin, input);
-    }while (input.compare("h") && input.compare("m") && input.compare("l"));
-    if (!input.compare("h"))
+        uppercase(input);
+    }while (input.compare("H") && input.compare("M") && input.compare("L"));
+    if (!input.compare("H"))
         res = 2;
-    else if (!input.compare("m"))
+    else if (!input.compare("M"))
         res = 1;
     else
         res = 0;
@@ -81,28 +82,28 @@ void select_size(ArenaBuilder& builder)
     unsigned max_height = 0;
     unsigned max_width = 0;
     bool choose;
-    std::cout << "Want to choose arena_size ?";
+    std::cout << "\nWant to choose arena_size ?";
     choose = yes_no();
     if (choose)
     {
-        unsigned height, width;
+        int height, width;
         std::string token;
         do
         {
             std::cout << "\nEnter a positive number for the height : ";
             getline(std::cin, token);
-        } while(!is_number(token) && (height = std::stoi(token)) <= 0);
+        } while(!is_number(token) || (height = std::stoi(token)) <= 0);
         do
         {
             std::cout << "\nEnter a positive number for the width : ";
             getline(std::cin, token);
-        } while(!is_number(token) && (width = std::stoi(token)) <= 0);
+        } while(!is_number(token) || (width = std::stoi(token)) <= 0);
         if(height <= 0 || width <= 0)
         {
             throw std::logic_error("Can't have negative or size in arena");
         }
-        max_height = height;
-        max_width = width;
+        max_height = (unsigned)height;
+        max_width = (unsigned)width;
     }
     builder.set_size(max_height, max_width);
 }
@@ -110,8 +111,11 @@ void select_size(ArenaBuilder& builder)
 void select_name(ArenaBuilder& builder)
 {
     std::string token;
-    std::cout << "What is your name? ";
-    std::getline(std::cin, token);
+    do
+    {
+        std::cout << "\nWhat is your name? ";
+        std::getline(std::cin, token);
+    } while(token.empty());
     builder.set_player(token);
 }
 
@@ -127,10 +131,8 @@ Arena make_arena()
 void curses_routine(void)
 {
     initscr();
-    cbreak();
     noecho();
-    keypad(stdscr, TRUE);
-    nodelay(stdscr, TRUE);
+    cbreak();
 }
 
 void check_size(Arena& arena)
@@ -157,18 +159,20 @@ void start_game(Arena& arena)
     curses_routine();
     arena_checks(arena);
     WINDOW*& window = arena.window(); 
+    keypad(window, TRUE);
+    nodelay(window, TRUE);
     wattron(window, A_BOLD);
     wmove(window, 0, 0);
     int key = 0;
     int next_key;
     while (arena.lives())
     {
-        next_key = getch();
+        next_key = wgetch(window);
         key = (next_key != ERR) ? next_key : key;
         arena.new_direction(key);
         arena.update();
         wrefresh(window);
-        usleep(500);
+        usleep(100000);
     }
     wattroff(window, A_BOLD);
 }

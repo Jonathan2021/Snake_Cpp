@@ -1,6 +1,6 @@
 CXX = g++
 LDFLAGS = -lncurses
-CXXFLAGS = -Wall -Wextra -Werror -std=c++17
+CXXFLAGS = -Wall -Wextra -Werror -g -std=c++17
 SRC = $(wildcard src/*.cc)
 OBJ = $(SRC:.cc=.o)
 TESTOBJ = snaketest.o $(filter-out src/game.o, $(OBJ))
