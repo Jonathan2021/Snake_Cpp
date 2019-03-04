@@ -1,0 +1,12 @@
+inline some stuff
+add using for long name (make code more readable)
+Doxygen
+Each element from the map could be a vector of something so that I can have several elements at the same place
+Complete Player Class
+Test more and handle all possible errors
+Append istead of insert (head at end of vector)??
+simplify remove procedure
+Add colors
+Multiplayer
+Menu
+Display score, name etc.
