@@ -6,7 +6,8 @@ Complete Player Class
 Test more and handle all possible errors
 Append istead of insert (head at end of vector)??
 simplify remove procedure
-Add colors
+Add colors DONE
 Multiplayer
 Menu
 Display score, name etc.
+Faire les questions au debut dans le menu, donc initscr() des le debut tout ca

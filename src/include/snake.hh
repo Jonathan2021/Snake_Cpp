@@ -341,7 +341,8 @@ class Arena
         unsigned& width(void);
         unsigned& height(void);
         unsigned& lives(void);
-        int& direction(void); 
+        int& direction(void);
+        bool& colored(void);
         std::vector<std::shared_ptr<Something>>& food(void);
         std::vector<std::shared_ptr<Something>>& snake(void);
         std::vector<std::shared_ptr<Something>>& wall(void);
@@ -380,6 +381,7 @@ class Arena
         int growth_;
         Player player_;
         WINDOW* window_;
+        bool colored_;
 }; /* -----  end of class Arena  ----- */
 
 

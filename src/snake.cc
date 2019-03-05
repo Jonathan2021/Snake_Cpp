@@ -362,6 +362,11 @@ int& Arena::direction(void)
     return direction_;
 }
 
+bool& Arena::colored(void)
+{
+    return colored_;
+}
+
 unsigned& Arena::lives(void)
 {
     return this->lives_;
@@ -413,11 +418,16 @@ void Arena::display(void) const
     std::cout << "Arena display to be implemented \n";
 }
 
-void Arena::add_to_window(unsigned y, unsigned x, char c, Color color = no_color)
+void Arena::add_to_window(unsigned y, unsigned x, char c = ' ', Color color = no_color)
 {
-    wattron(window_, COLOR_PAIR(color));
+    if (colored_)
+    {
+        c = ' ';
+        wattron(window_, COLOR_PAIR(color));
+    }
     mvwaddch(window_, y, x, c);
-    wattroff(window_, COLOR_PAIR(color));
+    if (colored_)
+        wattroff(window_, COLOR_PAIR(color));
 }
 
 
@@ -463,7 +473,7 @@ void my_erase(std::vector<std::shared_ptr<Something>>& vect, std::shared_ptr<Som
             for (auto tmp = it; tmp != it + nb; ++tmp)
             {
                 pos = (*tmp)->coords();
-                arena.add_to_window(pos.first, pos.second, ' ');
+                arena.add_to_window(pos.first, pos.second);
             }
             vect.erase(it, it + nb);
             break;
@@ -706,7 +716,7 @@ void Food::trigger(Arena& arena)
     {
         if ((*it).get() == this)
         {
-            arena.add_to_window((*it)->coords().first, (*it)->coords().second, ' ');
+            arena.add_to_window((*it)->coords().first, (*it)->coords().second);
             arena.growth() += (std::dynamic_pointer_cast<Food>(*it))->increase();
             if ((*it)->deadly())
                 arena.lives()--; 
