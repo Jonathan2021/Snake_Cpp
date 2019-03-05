@@ -413,9 +413,11 @@ void Arena::display(void) const
     std::cout << "Arena display to be implemented \n";
 }
 
-void Arena::add_to_window(unsigned y, unsigned x, char c)
+void Arena::add_to_window(unsigned y, unsigned x, char c, Color color = no_color)
 {
+    wattron(window_, COLOR_PAIR(color));
     mvwaddch(window_, y, x, c);
+    wattroff(window_, COLOR_PAIR(color));
 }
 
 
@@ -440,7 +442,7 @@ std::vector<std::shared_ptr<Something>>& get_vect(Arena& arena, std::shared_ptr<
 
 void add_something_to_window(Arena& arena, std::shared_ptr<Something> something)
 {
-    arena.add_to_window(something->coords().first, something->coords().second, something->print());
+    arena.add_to_window(something->coords().first, something->coords().second, something->print(), something->color());
 }
 
 void Arena::add_something(std::shared_ptr<Something> something)

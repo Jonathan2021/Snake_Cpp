@@ -46,7 +46,8 @@ enum Color{
     white,
     yellow,
     green,
-    pink
+    magenta,
+    no_color
 };
 
 /*
@@ -360,7 +361,7 @@ class Arena
         void update(void);
         void add_something(std::shared_ptr<Something> something);
         void remove_something(std::shared_ptr<Something> something, int nb);
-        void add_to_window(unsigned y, unsigned x, char c);
+        void add_to_window(unsigned y, unsigned x, char c, Color color);
         /* ====================  OPERATORS     ======================================= */
 
         /* ====================  DATA MEMBERS  ======================================= */

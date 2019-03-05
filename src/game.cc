@@ -154,9 +154,29 @@ void arena_checks(Arena& arena)
     assert(arena.lives() > 0);
 }
 
+void color_procedure(void)
+{
+    if (has_colors() == FALSE)
+    {
+        endwin();
+        throw ("Your terminal doesn't support colors");
+    }
+    start_color();
+    init_pair(red, COLOR_RED, COLOR_RED);
+    init_pair(blue, COLOR_BLUE, COLOR_BLUE);
+    init_pair(black, COLOR_BLACK, COLOR_BLACK);
+    init_pair(white, COLOR_WHITE, COLOR_WHITE);
+    init_pair(yellow, COLOR_YELLOW, COLOR_YELLOW);
+    init_pair(green, COLOR_GREEN, COLOR_GREEN);
+    init_pair(magenta, COLOR_MAGENTA, COLOR_MAGENTA);
+    init_pair(no_color, COLOR_WHITE, COLOR_BLACK);
+}
+
 void start_game(Arena& arena)
 {
     curses_routine();
+    
+    color_procedure();
     arena_checks(arena);
     WINDOW*& window = arena.window(); 
     keypad(window, TRUE);
@@ -175,12 +195,12 @@ void start_game(Arena& arena)
         usleep(100000);
     }
     wattroff(window, A_BOLD);
+    endwin();
 }
 
 int main (void)
 {
     Arena arena = make_arena();
     start_game(arena);
-    endwin();
     return EXIT_SUCCESS;
 }				/* ----------  end of function main  ---------- */
